@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SCP Black-Site Console</title>
+<style>
+    body {
+        background: #0a0a0a;
+        color: #e60000;
+        font-family: Consolas, monospace;
+        margin: 0;
+        padding: 0;
+        text-align: center;
+    }
+
+    h1 {
+        margin: 20px 0;
+        color: #ff1a1a;
+    }
+
+    /* TAB BAR */
+    .tabs {
+        display: flex;
+        background: #111;
+        border-bottom: 3px solid #ff0000;
+    }
+
+    .tab {
+        flex: 1;
+        padding: 15px;
+        cursor: pointer;
+        border-right: 2px solid #330000;
+        color: #ff3333;
+    }
+
+    .tab:hover {
+        background: #330000;
+    }
+
+    .active {
+        background: #660000;
+        color: #fff;
+    }
+
+    /* PAGES */
+    .page {
+        display: none;
+        padding: 20px;
+    }
+
+    .show {
+        display: block;
+    }
+
+    /* LCD */
+    #lcd {
+        width: 420px;
+        height: 120px;
+        margin: 20px auto;
+        background: #111;
+        border: 3px solid #ff0000;
+        padding: 10px;
+        color: #00ff00;
+        font-size: 22px;
+        white-space: pre-line;
+        text-align: left;
+    }
+
+    /* TERMINAL */
+    #terminal {
+        width: 420px;
+        height: 250px;
+        margin: 20px auto;
+        background: #111;
+        border: 3px solid #ff0000;
+        padding: 10px;
+        color: #ff3333;
+        font-size: 14px;
+        overflow-y: auto;
+        text-align: left;
+    }
+
+    /* KEYPAD */
+    .keypad {
+        width: 420px;
+        margin: 20px auto;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+
+    .btn {
+        padding: 20px;
+        background: #1a1a1a;
+        border: 2px solid #ff0000;
+        color: #ff3333;
+        font-size: 20px;
+        cursor: pointer;
+    }
+
+    .btn:hover {
+        background: #330000;
+    }
+
+    /* EMERGENCY */
+    .emergency {
+        width: 420px;
+        margin: 20px auto;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .em-btn {
+        padding: 15px;
+        width: 130px;
+        background: #330000;
+        border: 2px solid #ff0000;
+        color: #ff6666;
+        cursor: pointer;
+    }
+
+    .em-btn:hover {
+        background: #660000;
+    }
+
+    #connectBtn {
+        padding: 10px 20px;
+        background: #111;
+        border: 2px solid #ff0000;
+        color: #ff3333;
+        cursor: pointer;
+        margin-bottom: 20px;
+    }
+</style>
+</head>
+<body>
+
+<h1>SCP BLACK-SITE ACCESS TERMINAL</h1>
+
+<button id="connectBtn">CONNECT TO ARDUINO</button>
+
+<!-- TAB BAR -->
+<div class="tabs">
+    <div class="tab active" onclick="openTab('home')">HOME</div>
+    <div class="tab" onclick="openTab('lcdPage')">LCD</div>
+    <div class="tab" onclick="openTab('keypadPage')">KEYPAD</div>
+    <div class="tab" onclick="openTab('terminalPage')">TERMINAL</div>
+    <div class="tab" onclick="openTab('emergencyPage')">EMERGENCY</div>
+</div>
+
+<!-- HOME -->
+<div id="home" class="page show">
+    <h2>Welcome, Operator</h2>
+    <p>Use the tabs above to navigate the SCP Access Console.</p>
+</div>
+
+<!-- LCD PAGE -->
+<div id="lcdPage" class="page">
+    <div id="lcd">[ LCD OUTPUT APPEARS HERE ]</div>
+</div>
+
+<!-- KEYPAD PAGE -->
+<div id="keypadPage" class="page">
+    <div class="keypad">
+        <button class="btn" onclick="sendKey('1')">1</button>
+        <button class="btn" onclick="sendKey('2')">2</button>
+        <button class="btn" onclick="sendKey('3')">3</button>
+        <button class="btn" onclick="sendKey('4')">4</button>
+        <button class="btn" onclick="sendKey('5')">5</button>
+        <button class="btn" onclick="sendKey('6')">6</button>
+        <button class="btn" onclick="sendKey('7')">7</button>
+        <button class="btn" onclick="sendKey('8')">8</button>
+        <button class="btn" onclick="sendKey('9')">9</button>
+        <button class="btn" onclick="sendKey('*')">*</button>
+        <button class="btn" onclick="sendKey('0')">0</button>
+        <button class="btn" onclick="sendKey('#')">#</button>
+    </div>
+</div>
+
+<!-- TERMINAL PAGE -->
+<div id="terminalPage" class="page">
+    <div id="terminal"></div>
+</div>
+
+<!-- EMERGENCY PAGE -->
+<div id="emergencyPage" class="page">
+    <div class="emergency">
+        <button class="em-btn" onclick="sendKey('5555')">LOCKDOWN</button>
+        <button class="em-btn" onclick="sendKey('6666')">BREACH</button>
+        <button class="em-btn" onclick="sendKey('7777')">EVAC</button>
+    </div>
+</div>
+
+<script>
+let port, reader, writer;
+
+function openTab(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('show'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
+    document.getElementById(id).classList.add('show');
+    event.target.classList.add('active');
+}
+
+document.getElementById("connectBtn").onclick = async () => {
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 9600 });
+
+    writer = port.writable.getWriter();
+    reader = port.readable.getReader();
+
+    readSerial();
+};
+
+async function readSerial() {
+    const decoder = new TextDecoder();
+
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        let text = decoder.decode(value).trim();
+
+        if (text.length < 2) continue; // prevents ":" or "o" or "d"
+
+        document.getElementById("lcd").innerText = text;
+
+        let term = document.getElementById("terminal");
+        term.innerText += text + "\n";
+        term.scrollTop = term.scrollHeight;
+    }
+}
+
+async function sendKey(k) {
+    if (!writer) return;
+    await writer.write(new TextEncoder().encode(k + "\n"));
+}
+</script>
+
+</body>
+</html>
