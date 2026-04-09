@@ -1,1 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Arduino Control Panel</title>
+<style>
+body {
+    background: #0a0f14;
+    font-family: Arial, sans-serif;
+    color: #00eaff;
+    text-align: center;
+    margin-top: 40px;
+}
 
+#display {
+    width: 260px;
+    height: 50px;
+    margin: auto;
+    background: #00141f;
+    border: 2px solid #00eaff;
+    border-radius: 8px;
+    font-size: 28px;
+    padding-top: 10px;
+    letter-spacing: 4px;
+}
+
+.keypad {
+    width: 260px;
+    margin: 20px auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+button {
+    background: #002b3d;
+    border: 2px solid #00eaff;
+    color: #00eaff;
+    font-size: 24px;
+    padding: 20px;
+    border-radius: 8px;
+    transition: 0.2s;
+}
+
+button:hover {
+    background: #004d6b;
+    transform: scale(1.05);
+}
+
+#send, #clear {
+    width: 260px;
+    margin-top: 10px;
+    padding: 15px;
+    font-size: 22px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Arduino Control Panel</h1>
+
+<div id="display"></div>
+
+<div class="keypad">
+    <button onclick="press('1')">1</button>
+    <button onclick="press('2')">2</button>
+    <button onclick="press('3')">3</button>
+    <button onclick="press('4')">4</button>
+    <button onclick="press('5')">5</button>
+    <button onclick="press('6')">6</button>
+    <button onclick="press('7')">7</button>
+    <button onclick="press('8')">8</button>
+    <button onclick="press('9')">9</button>
+    <button onclick="press('*')">*</button>
+    <button onclick="press('0')">0</button>
+    <button onclick="press('#')">#</button>
+</div>
+
+<button id="send" onclick="sendCode()">SEND</button>
+<button id="clear" onclick="clearDisplay()">CLEAR</button>
+
+<script>
+let display = document.getElementById("display");
+let port;
+let writer;
+
+function press(num) {
+    display.innerHTML += num;
+}
+
+function clearDisplay() {
+    display.innerHTML = "";
+}
+
+async function sendCode() {
+    if (!writer) {
+        await connectSerial();
+    }
+
+    let code = display.innerHTML;
+    if (code.length === 0) return;
+
+    const encoder = new TextEncoder();
+    await writer.write(encoder.encode(code + "\n"));
+    clearDisplay();
+}
+
+async function connectSerial() {
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 9600 });
+    writer = port.writable.getWriter();
+}
+</script>
+
+</body>
+</html>
