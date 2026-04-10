@@ -80,4 +80,279 @@
         background: #21262d;
         border-radius: 6px;
         margin-top: 10px;
-       
+        overflow: hidden;
+    }
+
+    #proximityFill {
+        height: 100%;
+        width: 0%;
+        background: #00aaff;
+    }
+
+    /* EMERGENCY BANNER */
+    #emergencyBanner {
+        width: 100%;
+        height: 40px;
+        background: #8b0000;
+        color: white;
+        text-align: center;
+        line-height: 40px;
+        font-weight: bold;
+        font-size: 20px;
+        display: none;
+    }
+
+    /* SLIDE-UP KEYPAD */
+    #keypadPanel {
+        position: fixed;
+        bottom: -450px;
+        left: 0;
+        width: 100%;
+        height: 450px;
+        background: #111418;
+        border-top: 3px solid #1f242b;
+        box-shadow: 0 -5px 20px #000;
+        transition: bottom 0.35s ease;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    #keypadPanel.active {
+        bottom: 0;
+    }
+
+    #keypadBox {
+        text-align: center;
+    }
+
+    #keypadDisplay {
+        width: 300px;
+        height: 60px;
+        background: #0a0c0f;
+        border: 2px solid #2a2f38;
+        color: #00ff9d;
+        font-size: 40px;
+        margin-bottom: 20px;
+        line-height: 60px;
+        font-family: "Courier New", monospace;
+        border-radius: 8px;
+    }
+
+    .keyRow {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 10px;
+    }
+
+    .key {
+        width: 90px;
+        height: 90px;
+        margin: 5px;
+        font-size: 32px;
+        background: #1a1e24;
+        border: 2px solid #2a2f38;
+        color: #9ecbff;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: 0.15s;
+    }
+
+    .key:hover {
+        background: #232931;
+    }
+
+    .enter {
+        background: #0044aa;
+        color: white;
+    }
+
+    .cancel {
+        background: #660000;
+        color: white;
+    }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+    <div class="tab activeTab" onclick="switchTab('dashboard')">Dashboard</div>
+    <div class="tab" onclick="switchTab('terminalPanel')">Terminal</div>
+    <div class="tab" onclick="switchTab('sensors')">Sensors</div>
+    <div class="tab" id="keypadBtn">KEYPAD</div>
+    <div class="tab" onclick="connectSerial()">CONNECT</div>
+</div>
+
+<div id="emergencyBanner"></div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="panel" style="display:block;">
+    <h2>LCD Display</h2>
+    <div id="lcdBox">Waiting for data...</div>
+
+    <h2>Proximity Sensor</h2>
+    <div id="proximityBar"><div id="proximityFill"></div></div>
+
+    <h2>System State</h2>
+    <div id="stateBox">STATE: READY</div>
+
+    <h2>Access Level</h2>
+    <div id="levelBox">LEVEL: --</div>
+
+    <h2>Event</h2>
+    <div id="eventBox">EVENT: NONE</div>
+</div>
+
+<!-- TERMINAL -->
+<div id="terminalPanel" class="panel">
+    <h2>Terminal Log</h2>
+    <div id="terminal"></div>
+</div>
+
+<!-- SENSORS -->
+<div id="sensors" class="panel">
+    <h2>Sensor Data</h2>
+    <p>Live ultrasonic distance and system diagnostics appear here.</p>
+</div>
+
+<!-- SLIDE-UP KEYPAD -->
+<div id="keypadPanel">
+    <div id="keypadBox">
+        <div id="keypadDisplay">----</div>
+
+        <div class="keyRow">
+            <button class="key">1</button>
+            <button class="key">2</button>
+            <button class="key">3</button>
+        </div>
+        <div class="keyRow">
+            <button class="key">4</button>
+            <button class="key">5</button>
+            <button class="key">6</button>
+        </div>
+        <div class="keyRow">
+            <button class="key">7</button>
+            <button class="key">8</button>
+            <button class="key">9</button>
+        </div>
+        <div class="keyRow">
+            <button class="key cancel">C</button>
+            <button class="key">0</button>
+            <button class="key enter">E</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/* TAB SWITCHING */
+function switchTab(id) {
+    document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('activeTab'));
+    document.getElementById(id).style.display = 'block';
+    event.target.classList.add('activeTab');
+}
+
+/* TERMINAL LOG */
+function log(msg) {
+    let t = document.getElementById("terminal");
+    t.innerHTML += msg + "<br>";
+    t.scrollTop = t.scrollHeight;
+}
+
+/* SERIAL CONNECTION */
+let port, reader, writer;
+
+async function connectSerial() {
+    try {
+        port = await navigator.serial.requestPort();
+        await port.open({ baudRate: 9600 });
+
+        writer = port.writable.getWriter();
+        reader = port.readable.getReader();
+
+        log("Connected to Arduino");
+
+        readLoop();
+    } catch (e) {
+        log("Serial Error: " + e);
+    }
+}
+
+async function readLoop() {
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        if (value) processSerial(new TextDecoder().decode(value));
+    }
+}
+
+/* SERIAL MESSAGE HANDLER */
+function processSerial(line) {
+    line = line.trim();
+    log(line);
+
+    if (line.startsWith("LCD:")) {
+        document.getElementById("lcdBox").innerText = line.substring(4);
+    }
+    else if (line.startsWith("US:")) {
+        let d = parseInt(line.substring(3));
+        let pct = Math.min(100, Math.max(0, (200 - d) / 2));
+        document.getElementById("proximityFill").style.width = pct + "%";
+    }
+    else if (line.startsWith("STATE:")) {
+        document.getElementById("stateBox").innerText = line;
+        let banner = document.getElementById("emergencyBanner");
+        if (line.includes("LOCKDOWN") || line.includes("FIRE") || line.includes("GAS")) {
+            banner.style.display = "block";
+            banner.innerText = line.substring(6);
+        } else {
+            banner.style.display = "none";
+        }
+    }
+    else if (line.startsWith("LEVEL:")) {
+        document.getElementById("levelBox").innerText = line;
+    }
+    else if (line.startsWith("EVENT:")) {
+        document.getElementById("eventBox").innerText = line;
+    }
+}
+
+/* KEYPAD LOGIC */
+let keypadPanel = document.getElementById("keypadPanel");
+let keypadBtn = document.getElementById("keypadBtn");
+let keypadDisplay = document.getElementById("keypadDisplay");
+let keypadInput = "";
+
+keypadBtn.addEventListener("click", () => {
+    keypadPanel.classList.add("active");
+    keypadInput = "";
+    keypadDisplay.textContent = "----";
+});
+
+document.querySelectorAll(".key").forEach(btn => {
+    btn.addEventListener("click", () => {
+        let val = btn.textContent;
+
+        if (val === "C") {
+            keypadInput = "";
+            keypadDisplay.textContent = "----";
+        }
+        else if (val === "E") {
+            if (keypadInput.length > 0 && writer) {
+                writer.write(new TextEncoder().encode("CMD:" + keypadInput + "\n"));
+                log("Sent keypad code: " + keypadInput);
+            }
+            keypadPanel.classList.remove("active");
+        }
+        else {
+            if (keypadInput.length < 4) {
+                keypadInput += val;
+                keypadDisplay.textContent = keypadInput.padEnd(4, "-");
+            }
+        }
+    });
+});
+</script>
+
+</body>
+</html>
