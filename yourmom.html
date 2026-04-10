@@ -2,20 +2,19 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>SCP Black-Site Console</title>
+<title>SCP Console</title>
 <style>
     body {
         margin: 0;
-        background: #000000;
+        background: #000;
         color: #00ff66;
         font-family: "Courier New", monospace;
-        overflow: hidden;
     }
 
     /* TOP BAR */
     #topbar {
         height: 50px;
-        background: #000000;
+        background: #000;
         border-bottom: 2px solid #00ff66;
         display: flex;
         align-items: center;
@@ -34,39 +33,27 @@
 
     .activeTab {
         background: #003300;
-        border-color: #00ff66;
     }
 
-    /* PANELS */
     .panel {
         display: none;
         padding: 20px;
-        height: calc(100vh - 50px);
-        overflow-y: auto;
     }
 
-    /* LCD BOX */
     #lcdBox {
         width: 100%;
         height: 120px;
-        background: #000000;
         border: 2px solid #00ff66;
         padding: 10px;
-        font-size: 22px;
-        color: #00ff66;
         white-space: pre-wrap;
     }
 
-    /* TERMINAL */
     #terminal {
         width: 100%;
         height: 300px;
-        background: #000000;
         border: 2px solid #00ff66;
         padding: 10px;
         overflow-y: auto;
-        font-size: 14px;
-        color: #00ff66;
     }
 
     /* KEYPAD */
@@ -76,7 +63,7 @@
         left: 0;
         width: 100%;
         height: 350px;
-        background: #000000;
+        background: #000;
         border-top: 2px solid #00ff66;
         transition: bottom .3s ease;
         display: flex;
@@ -91,20 +78,14 @@
     #keypadDisplay {
         width: 260px;
         height: 50px;
-        background: #000000;
         border: 2px solid #00ff66;
-        color: #00ff66;
-        font-size: 32px;
         text-align: center;
         line-height: 50px;
+        font-size: 32px;
         margin-bottom: 20px;
     }
 
-    .keyRow {
-        display: flex;
-        justify-content: center;
-    }
-
+    .keyRow { display: flex; justify-content: center; }
     .key {
         width: 70px;
         height: 70px;
@@ -115,9 +96,6 @@
         color: #00ff66;
         cursor: pointer;
     }
-
-    .enter { background: #003300; }
-    .cancel { background: #330000; }
 </style>
 </head>
 <body>
@@ -125,26 +103,20 @@
 <div id="topbar">
     <div class="tab activeTab" data-target="dash">Dashboard</div>
     <div class="tab" data-target="term">Terminal</div>
-    <div class="tab" data-target="sens">Sensors</div>
     <div class="tab" id="keypadBtn">KEYPAD</div>
+    <div class="tab" id="connectBtn">CONNECT</div> <!-- ⭐ YOU WILL SEE THIS -->
 </div>
 
 <!-- DASHBOARD -->
 <div id="dash" class="panel" style="display:block;">
-    <h2>SCP SYSTEM STATUS</h2>
-    <div id="lcdBox">Awaiting input...</div>
+    <h2>SCP SYSTEM</h2>
+    <div id="lcdBox">Awaiting data...</div>
 </div>
 
 <!-- TERMINAL -->
 <div id="term" class="panel">
     <h2>Terminal Log</h2>
     <div id="terminal"></div>
-</div>
-
-<!-- SENSORS -->
-<div id="sens" class="panel">
-    <h2>Sensor Data</h2>
-    <p>Sensor output will appear here.</p>
 </div>
 
 <!-- KEYPAD -->
@@ -168,29 +140,84 @@
             <button class="key">9</button>
         </div>
         <div class="keyRow">
-            <button class="key cancel">C</button>
+            <button class="key">C</button>
             <button class="key">0</button>
-            <button class="key enter">E</button>
+            <button class="key">E</button>
         </div>
     </div>
 </div>
 
 <script>
-// TAB SWITCHING
+/* TAB SWITCHING */
 document.querySelectorAll(".tab").forEach(tab => {
     tab.addEventListener("click", () => {
         let target = tab.dataset.target;
-        if (!target) return;
+        if (target) {
+            document.querySelectorAll(".panel").forEach(p => p.style.display = "none");
+            document.getElementById(target).style.display = "block";
 
-        document.querySelectorAll(".panel").forEach(p => p.style.display = "none");
-        document.getElementById(target).style.display = "block";
-
-        document.querySelectorAll(".tab").forEach(t => t.classList.remove("activeTab"));
-        tab.classList.add("activeTab");
+            document.querySelectorAll(".tab").forEach(t => t.classList.remove("activeTab"));
+            tab.classList.add("activeTab");
+        }
     });
 });
 
-// KEYPAD
+/* TERMINAL LOG */
+function log(msg) {
+    const t = document.getElementById("terminal");
+    t.innerHTML += msg + "<br>";
+    t.scrollTop = t.scrollHeight;
+}
+
+/* WEB SERIAL */
+let port, reader, writer;
+
+async function connectSerial() {
+    try {
+        port = await navigator.serial.requestPort();
+        await port.open({ baudRate: 9600 });
+
+        writer = port.writable.getWriter();
+        reader = port.readable.getReader();
+
+        log("CONNECTED");
+        readLoop();
+    } catch (e) {
+        log("ERROR: " + e);
+    }
+}
+
+async function readLoop() {
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value);
+        let lines = buffer.split("\n");
+        buffer = lines.pop();
+        lines.forEach(processLine);
+    }
+}
+
+function processLine(line) {
+    line = line.trim();
+    if (!line) return;
+
+    log("&gt; " + line);
+
+    if (line.startsWith("LCD:")) {
+        document.getElementById("lcdBox").textContent = line.substring(4);
+    }
+}
+
+/* CONNECT BUTTON */
+document.getElementById("connectBtn").addEventListener("click", () => {
+    connectSerial();
+});
+
+/* KEYPAD */
 let keypadPanel = document.getElementById("keypadPanel");
 let keypadBtn = document.getElementById("keypadBtn");
 let keypadDisplay = document.getElementById("keypadDisplay");
@@ -211,7 +238,10 @@ document.querySelectorAll(".key").forEach(btn => {
             keypadDisplay.textContent = "----";
         }
         else if (v === "E") {
-            alert("Keypad code: " + keypadInput);
+            if (writer) {
+                writer.write(new TextEncoder().encode("CMD:" + keypadInput + "\n"));
+                log("SENT CMD:" + keypadInput);
+            }
             keypadPanel.classList.remove("active");
         }
         else {
