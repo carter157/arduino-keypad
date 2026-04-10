@@ -1,153 +1,66 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
-<title>SCP Console</title>
+<title>Button Test</title>
 <style>
-    body {
-        margin: 0;
-        background: #0d1117;
-        color: #c9d1d9;
-        font-family: Arial, sans-serif;
-        overflow: hidden;
-    }
+    body { background:#0d1117; color:white; font-family:Arial; margin:0; }
 
     #topbar {
-        height: 50px;
-        background: #161b22;
-        display: flex;
-        align-items: center;
-        padding-left: 10px;
-        border-bottom: 2px solid #30363d;
+        height:50px; background:#161b22; display:flex; align-items:center;
+        padding-left:10px; border-bottom:2px solid #30363d;
     }
 
     .tab {
-        padding: 10px 20px;
-        margin-right: 10px;
-        background: #21262d;
-        border: 1px solid #30363d;
-        cursor: pointer;
-        border-radius: 6px;
+        padding:10px 20px; margin-right:10px; background:#21262d;
+        border:1px solid #30363d; border-radius:6px; cursor:pointer;
     }
 
-    .activeTab {
-        background: #238636;
-        border-color: #2ea043;
-    }
+    .activeTab { background:#238636; border-color:#2ea043; }
 
-    .panel {
-        display: none;
-        padding: 20px;
-        height: calc(100vh - 50px);
-        overflow-y: auto;
-    }
-
-    #lcdBox {
-        width: 100%;
-        height: 120px;
-        background: #111418;
-        border: 2px solid #30363d;
-        border-radius: 8px;
-        padding: 10px;
-        font-size: 22px;
-        font-family: "Courier New", monospace;
-        color: #00ff9d;
-    }
-
-    #terminal {
-        width: 100%;
-        height: 300px;
-        background: #0a0c10;
-        border: 2px solid #30363d;
-        border-radius: 8px;
-        padding: 10px;
-        overflow-y: auto;
-        font-family: "Courier New", monospace;
-        font-size: 14px;
-    }
+    .panel { display:none; padding:20px; }
 
     #keypadPanel {
-        position: fixed;
-        bottom: -450px;
-        left: 0;
-        width: 100%;
-        height: 450px;
-        background: #111418;
-        border-top: 3px solid #1f242b;
-        transition: bottom 0.35s ease;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+        position:fixed; bottom:-300px; left:0; width:100%; height:300px;
+        background:#111418; border-top:3px solid #1f242b;
+        transition:bottom .3s ease; display:flex; justify-content:center;
+        align-items:center;
     }
 
-    #keypadPanel.active {
-        bottom: 0;
-    }
+    #keypadPanel.active { bottom:0; }
 
     #keypadDisplay {
-        width: 300px;
-        height: 60px;
-        background: #0a0c0f;
-        border: 2px solid #2a2f38;
-        color: #00ff9d;
-        font-size: 40px;
-        margin-bottom: 20px;
-        line-height: 60px;
-        font-family: "Courier New", monospace;
-        border-radius: 8px;
-        text-align: center;
+        width:200px; height:50px; background:#000; color:#00ff9d;
+        border:2px solid #333; font-size:32px; text-align:center;
+        line-height:50px; margin-bottom:20px;
     }
 
-    .keyRow {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 10px;
-    }
-
+    .keyRow { display:flex; justify-content:center; }
     .key {
-        width: 90px;
-        height: 90px;
-        margin: 5px;
-        font-size: 32px;
-        background: #1a1e24;
-        border: 2px solid #2a2f38;
-        color: #9ecbff;
-        border-radius: 10px;
-        cursor: pointer;
+        width:70px; height:70px; margin:5px; font-size:28px;
+        background:#1a1e24; border:2px solid #333; color:#9ecbff;
+        border-radius:10px; cursor:pointer;
     }
-
-    .enter { background: #0044aa; color: white; }
-    .cancel { background: #660000; color: white; }
 </style>
 </head>
 <body>
 
 <div id="topbar">
-    <div class="tab activeTab" data-target="dashboard">Dashboard</div>
-    <div class="tab" data-target="terminalPanel">Terminal</div>
-    <div class="tab" data-target="sensors">Sensors</div>
+    <div class="tab activeTab" data-target="dash">Dashboard</div>
+    <div class="tab" data-target="term">Terminal</div>
     <div class="tab" id="keypadBtn">KEYPAD</div>
 </div>
 
-<!-- DASHBOARD -->
-<div id="dashboard" class="panel" style="display:block;">
-    <h2>LCD Display</h2>
-    <div id="lcdBox">Waiting for data...</div>
+<div id="dash" class="panel" style="display:block;">
+    <h2>Dashboard</h2>
+    <p>If you see this, tabs work.</p>
 </div>
 
-<!-- TERMINAL -->
-<div id="terminalPanel" class="panel">
-    <h2>Terminal Log</h2>
-    <div id="terminal"></div>
+<div id="term" class="panel">
+    <h2>Terminal</h2>
+    <p>If you see this, tab switching works.</p>
 </div>
 
-<!-- SENSORS -->
-<div id="sensors" class="panel">
-    <h2>Sensors</h2>
-    <p>Sensor data will appear here.</p>
-</div>
-
-<!-- KEYPAD -->
 <div id="keypadPanel">
     <div>
         <div id="keypadDisplay">----</div>
@@ -168,30 +81,29 @@
             <button class="key">9</button>
         </div>
         <div class="keyRow">
-            <button class="key cancel">C</button>
+            <button class="key">C</button>
             <button class="key">0</button>
-            <button class="key enter">E</button>
+            <button class="key">E</button>
         </div>
     </div>
 </div>
 
 <script>
-/* TAB SWITCHING */
+// TAB SWITCHING
 document.querySelectorAll(".tab").forEach(tab => {
     tab.addEventListener("click", () => {
-        let target = tab.getAttribute("data-target");
+        let target = tab.dataset.target;
+        if (!target) return;
 
-        if (target) {
-            document.querySelectorAll(".panel").forEach(p => p.style.display = "none");
-            document.getElementById(target).style.display = "block";
+        document.querySelectorAll(".panel").forEach(p => p.style.display = "none");
+        document.getElementById(target).style.display = "block";
 
-            document.querySelectorAll(".tab").forEach(t => t.classList.remove("activeTab"));
-            tab.classList.add("activeTab");
-        }
+        document.querySelectorAll(".tab").forEach(t => t.classList.remove("activeTab"));
+        tab.classList.add("activeTab");
     });
 });
 
-/* KEYPAD */
+// KEYPAD
 let keypadPanel = document.getElementById("keypadPanel");
 let keypadBtn = document.getElementById("keypadBtn");
 let keypadDisplay = document.getElementById("keypadDisplay");
@@ -205,19 +117,19 @@ keypadBtn.addEventListener("click", () => {
 
 document.querySelectorAll(".key").forEach(btn => {
     btn.addEventListener("click", () => {
-        let val = btn.textContent;
+        let v = btn.textContent;
 
-        if (val === "C") {
+        if (v === "C") {
             keypadInput = "";
             keypadDisplay.textContent = "----";
         }
-        else if (val === "E") {
-            console.log("SEND CODE:", keypadInput);
+        else if (v === "E") {
+            alert("You entered: " + keypadInput);
             keypadPanel.classList.remove("active");
         }
         else {
             if (keypadInput.length < 4) {
-                keypadInput += val;
+                keypadInput += v;
                 keypadDisplay.textContent = keypadInput.padEnd(4, "-");
             }
         }
